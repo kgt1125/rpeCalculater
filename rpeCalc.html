@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>RPE 기반 RM 계산기</title>
+  <!-- 모바일 반응형을 위한 meta viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <!-- Google Fonts: 기계식 계산기 느낌을 위한 Orbitron -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+  
+  <style>
+    /* 기본 레이아웃 및 폰트 */
+    html, body {
+      margin: 0;
+      padding: 0;
+      font-family: 'fantasy';
+      background: #f4f3ee;
+      color: #333;
+    }
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    
+    /* 계산기 컨테이너 */
+    .calc-container {
+      width: 100%;
+      max-width: 400px;
+      background: #e3e0d1;
+      border: 2px solid #b2afa0;
+      border-radius: 12px;
+      box-shadow: 0 6px 10px rgba(0,0,0,0.15);
+      padding: 16px 20px;
+      margin: 0 auto;
+    }
+    .calc-container h1 {
+      text-align: center;
+      margin-bottom: 16px;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #3b3b3b;
+    }
+    
+    /* 입력 폼 영역 */
+    .input-group {
+      margin-bottom: 1rem;
+    }
+    .input-group label {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    .input-group input {
+      width: 120px;
+      padding: 6px 8px;
+      font-size: 0.95rem;
+      font-family: 'fantasy';
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+    }
+    
+    /* 계산하기 버튼 */
+    .calc-button {
+      display: block;
+      width: 100%;
+      padding: 10px 0;
+      margin-top: 8px;
+      background: linear-gradient(180deg, #dedbd0 0%, #b2afa0 100%);
+      border: 1px solid #aaa;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: 0 2px 2px rgba(0,0,0,0.2);
+      transition: transform 0.1s ease;
+    }
+    .calc-button:hover {
+      background: linear-gradient(180deg, #eceae0 0%, #bdb9aa 100%);
+    }
+    .calc-button:active {
+      transform: translateY(1px);
+      box-shadow: 0 1px 1px rgba(0,0,0,0.3);
+    }
+    
+    /* 결과 디스플레이 영역 */
+    #resultArea {
+      margin-top: 1rem;
+      background: #fcfaf5;
+      border: 2px solid #b2afa0;
+      border-radius: 8px;
+      min-height: 80px;
+      padding: 10px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+    }
+    #resultArea h2 {
+      margin: 0 0 8px 0;
+      font-size: 1.1rem;
+      text-align: center;
+      font-weight: 700;
+    }
+    #resultArea p {
+      margin: 6px 0;
+      font-size: 0.9rem;
+    }
+    
+    /* 테이블 스타일 */
+    .table-container {
+      overflow-x: auto;
+      margin-top: 1rem;
+    }
+    table {
+      border-collapse: collapse;
+      min-width: 500px;
+      width: 100%;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    thead {
+      background: #f2f2f2;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.4rem 0.6rem;
+    }
+    th {
+      font-weight: 700;
+    }
+    
+    /* 모바일 최적화 */
+    @media (max-width: 480px) {
+      .calc-container {
+        max-width: 100%;
+        padding: 12px 16px;
+      }
+      .calc-container h1 {
+        font-size: 1.2rem;
+      }
+      .input-group label {
+        font-size: 0.9rem;
+      }
+      .input-group input {
+        width: 100px;
+        font-size: 0.85rem;
+      }
+      .calc-button {
+        font-size: 0.9rem;
+      }
+      #resultArea h2 {
+        font-size: 1rem;
+      }
+      table {
+        font-size: 0.8rem;
+        min-width: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="calc-container">
+    <h1>RPE 기반 RM 계산기</h1>
+    <div class="input-group">
+      <label>
+        중량(Weight):
+        <input type="number" id="weightInput" value="220" step="0.5">
+      </label>
+      <label>
+        RPE(0.5단위):
+        <input type="number" id="rpeInput" value="6" step="0.5">
+      </label>
+      <label>
+        반복수(1~15):
+        <input type="number" id="repsInput" value="1" min="1" max="15">
+      </label>
+      <button class="calc-button" id="calcButton">계산하기</button>
+    </div>
+    <div id="resultArea"></div>
+  </div>
+  
+  <script>
+    // RPE=10 기준 표 (예시 데이터)
+    const rpe10Table = [
+      1.000, // 1회 -> 100%
+      0.955, // 2회 -> 95.5%
+      0.922, // 3회 -> 92.2%
+      0.898, // 4회 -> 89.8%
+      0.873, // 5회 -> 87.3%
+      0.848, // 6회 -> 84.8%
+      0.826, // 7회 -> 82.6%
+      0.801, // 8회 -> 80.1%
+      0.780, // 9회 -> 78.0%
+      0.758, // 10회 -> 75.8%
+      0.739, // 11회 -> 73.9%
+      0.720  // 12회 -> 72.0%
+    ];
+    
+    // (1) RIR 로직: totalReps = reps + (10 - RPE)
+    function getOneRMFromRIR(weight, rpe, reps) {
+      const RIR = 10 - rpe;
+      const totalReps = reps + RIR;
+      if (totalReps < 1 || totalReps > rpe10Table.length) {
+        alert(`표 범위를 벗어납니다. (총 반복수: ${totalReps}회)`);
+        return null;
+      }
+      const fraction = rpe10Table[totalReps - 1];
+      return weight / fraction;
+    }
+    
+    // (2) 추정 1RM을 기준으로 1~12RM 계산 (모두 RPE=10 기준)
+    function getRMTable(oneRM, maxReps = 12) {
+      let results = {};
+      for (let i = 1; i <= maxReps; i++) {
+        const frac = rpe10Table[i - 1];
+        if (frac) {
+          results[i] = oneRM * frac;
+        }
+      }
+      return results; 
+    }
+    
+    // (3) 결과 업데이트 함수
+    function updateResults() {
+      const weight = parseFloat(document.getElementById('weightInput').value);
+      const rpe = parseFloat(document.getElementById('rpeInput').value);
+      const reps = parseInt(document.getElementById('repsInput').value);
+      
+      if (isNaN(weight) || isNaN(rpe) || isNaN(reps)) {
+        document.getElementById('resultArea').innerHTML = "<p>입력값을 확인해주세요.</p>";
+        return;
+      }
+      
+      const estimatedOneRM = getOneRMFromRIR(weight, rpe, reps);
+      if (!estimatedOneRM) return;
+      
+      const rmObj = getRMTable(estimatedOneRM, 12);
+      
+      let html = `<h2>결과</h2>`;
+      html += `<p>입력: <strong>${weight}kg</strong>, RPE=${rpe}, reps=${reps}</p>`;
+      html += `<p>추정 1RM: <strong>${estimatedOneRM.toFixed(1)} kg</strong> (RPE=10 기준)</p>`;
+      html += `<div class="table-container"><table><thead><tr>`;
+      for (let i = 1; i <= 12; i++) {
+        html += `<th>${i}RM</th>`;
+      }
+      html += `</tr></thead><tbody><tr>`;
+      for (let i = 1; i <= 12; i++) {
+        html += `<td>${rmObj[i] ? rmObj[i].toFixed(1) : '-'}</td>`;
+      }
+      html += `</tr></tbody></table></div>`;
+      
+      document.getElementById('resultArea').innerHTML = html;
+    }
+    
+    // 처음 계산하기 버튼 클릭 시 결과 업데이트 및 이후 onchange 이벤트 적용
+    document.getElementById('calcButton').addEventListener('click', function() {
+      updateResults();
+      
+      // 계산 후, 입력 필드에 'input' 이벤트 리스너 추가 (이미 추가된 경우 중복되지 않도록)
+      document.getElementById('weightInput').addEventListener('input', updateResults);
+      document.getElementById('rpeInput').addEventListener('input', updateResults);
+      document.getElementById('repsInput').addEventListener('input', updateResults);
+    });
+  </script>
+</body>
+</html>
